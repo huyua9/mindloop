@@ -13,6 +13,14 @@ type Service struct {
 	DB *gorm.DB
 }
 
+// startOfLocalDay returns midnight in the timestamp's location. Truncating a
+// timestamp to 24 hours truncates from the Unix epoch (UTC), which shifts the
+// habit boundary for users outside UTC.
+func startOfLocalDay(t time.Time) time.Time {
+	year, month, day := t.Date()
+	return time.Date(year, month, day, 0, 0, 0, 0, t.Location())
+}
+
 func NewService(db *gorm.DB) *Service {
 	return &Service{DB: db}
 }
@@ -88,7 +96,7 @@ func (s *Service) LogHabit(habitID string, pointsToAward int) (*models.Habit, *m
 
 	var existingLogs []models.HabitLog
 	now := time.Now()
-	today := now.Truncate(24 * time.Hour)
+	today := startOfLocalDay(now)
 	var startRange, endRange time.Time
 
 	switch habit.Interval {
@@ -157,7 +165,7 @@ func (s *Service) UnlogHabit(habitID string) (*models.Habit, error) {
 
 	var existingLogs []models.HabitLog
 	now := time.Now()
-	today := now.Truncate(24 * time.Hour)
+	today := startOfLocalDay(now)
 	var startRange, endRange time.Time
 
 	switch habit.Interval {
@@ -240,9 +248,9 @@ func (s *Service) CalculateStreak(habitID uint, interval models.IntervalType) (i
 	}
 
 	streak := 0
-	today := time.Now().Truncate(24 * time.Hour)
+	today := startOfLocalDay(time.Now())
 
-	lastLogDate := logs[0].CreatedAt.Truncate(24 * time.Hour)
+	lastLogDate := startOfLocalDay(logs[0].CreatedAt)
 	daysDiff := today.Sub(lastLogDate).Hours() / 24
 
 	if daysDiff > 1 {
@@ -252,7 +260,7 @@ func (s *Service) CalculateStreak(habitID uint, interval models.IntervalType) (i
 	expectedDate := lastLogDate
 loop:
 	for _, log := range logs {
-		logDate := log.CreatedAt.Truncate(24 * time.Hour)
+		logDate := startOfLocalDay(log.CreatedAt)
 
 		switch {
 		case logDate.Equal(expectedDate):

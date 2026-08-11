@@ -92,7 +92,8 @@ func TestCalculateStreak(t *testing.T) {
 	}
 
 	// Create manual logs for 3 consecutive days (including today)
-	today := time.Now().Truncate(24 * time.Hour)
+	now := time.Now()
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
 	for i := 0; i < 3; i++ {
 		date := today.AddDate(0, 0, -i)
 		db.Create(&models.HabitLog{
